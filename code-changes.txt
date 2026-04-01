@@ -1,0 +1,82 @@
+diff --git a/fastfold/habana/fastnn/__init__.py b/fastfold/habana/fastnn/__init__.py
+index 5ab4330..a71658f 100644
+--- a/fastfold/habana/fastnn/__init__.py
++++ b/fastfold/habana/fastnn/__init__.py
+@@ -88,10 +88,10 @@ class Evoformer(nn.Module):
+                 m = gather(m, dim=0)
+             z = gather(z, dim=0)
+ 
+-            m = m[:, :-padding_size, :]
+-            z = z[:-padding_size, :-padding_size, :]
++            m = m[:, :m.shape[1] - padding_size, :]
++            z = z[:z.shape[0] - padding_size, :z.shape[1] - padding_size, :]
+ 
+-        htcore.mark_step()
++        htcore.mark_step(sync=True)
+ 
+         return m, z
+ 
+@@ -219,7 +219,6 @@ class EvoformerStack(nn.Module):
+                 m, z = b(m, z)
+ 
+         s = self.linear(m[..., 0, :, :])
+-
+         htcore.mark_step()
+ 
+         return m, z, s
+@@ -301,10 +300,10 @@ class ExtraMSABlock(nn.Module):
+                 m = gather(m, dim=0)
+             z = gather(z, dim=0)
+ 
+-            m = m[:, :-padding_size, :]
+-            z = z[:-padding_size, :-padding_size, :]
++            m = m[:, :m.shape[1] - padding_size, :]
++            z = z[:z.shape[0] - padding_size, :z.shape[1] - padding_size, :]
+ 
+-        htcore.mark_step()
++        htcore.mark_step(sync=True)
+ 
+         return m, z
+ 
+diff --git a/fastfold/habana/fastnn/custom_op/fusedsoftmax.py b/fastfold/habana/fastnn/custom_op/fusedsoftmax.py
+index 8f2166e..830a0f4 100644
+--- a/fastfold/habana/fastnn/custom_op/fusedsoftmax.py
++++ b/fastfold/habana/fastnn/custom_op/fusedsoftmax.py
+@@ -6,10 +6,12 @@ import torch
+ import os
+ import habana_frameworks.torch.core
+ 
+-custom_fusedsoftmax_op_lib_path = "./build/lib.linux-x86_64-3.8/hpu_fusedsoftmax.cpython-38-x86_64-linux-gnu.so"
++custom_fusedsoftmax_op_lib_path = "./build/lib.linux-x86_64-cpython-312/hpu_fusedsoftmax.cpython-312-x86_64-linux-gnu.so"
+ my_dir = os.path.realpath(__file__)
+ my_len = my_dir.rfind('/')
+ base_dir = my_dir[:my_len]
++import ctypes, ctypes.util
++ctypes.CDLL("/usr/local/lib/python3.12/dist-packages/habana_frameworks/torch/lib/libhabana_pytorch_plugin.so", mode=ctypes.RTLD_GLOBAL)
+ torch.ops.load_library(os.path.join(base_dir, custom_fusedsoftmax_op_lib_path))
+ 
+ class FusedSoftmaxFunction(torch.autograd.Function):
+@@ -63,7 +65,7 @@ class FusedSoftmaxBiasFunction(torch.autograd.Function):
+         return grad_input, None, grad_bias, None
+ 
+ 
+-ENABLE_OPT = True
++ENABLE_OPT = False
+ 
+ def fused_softmax(input, mask, dim):
+     if ENABLE_OPT and input[..., :, :1, :1, :].shape == mask.shape:
+diff --git a/fastfold/model/hub/alphafold.py b/fastfold/model/hub/alphafold.py
+index 78e2265..8cfc420 100644
+--- a/fastfold/model/hub/alphafold.py
++++ b/fastfold/model/hub/alphafold.py
+@@ -393,6 +393,10 @@ class AlphaFold(nn.Module):
+         outputs["pair"] = z
+         outputs["single"] = s
+ 
++        if habana.is_habana():
++            import habana_frameworks.torch.core as htcore
++            htcore.mark_step()
++
+         if habana.is_habana():
+             perf.checkahead("5: Predict 3D structure")
+         outputs["sm"] = self.structure_module(
