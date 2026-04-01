@@ -88,10 +88,10 @@ class Evoformer(nn.Module):
                 m = gather(m, dim=0)
             z = gather(z, dim=0)
 
-            m = m[:, :-padding_size, :]
-            z = z[:-padding_size, :-padding_size, :]
+            m = m[:, :m.shape[1] - padding_size, :]
+            z = z[:z.shape[0] - padding_size, :z.shape[1] - padding_size, :]
 
-        htcore.mark_step()
+        htcore.mark_step(sync=True)
 
         return m, z
 
@@ -219,7 +219,6 @@ class EvoformerStack(nn.Module):
                 m, z = b(m, z)
 
         s = self.linear(m[..., 0, :, :])
-
         htcore.mark_step()
 
         return m, z, s
@@ -301,10 +300,10 @@ class ExtraMSABlock(nn.Module):
                 m = gather(m, dim=0)
             z = gather(z, dim=0)
 
-            m = m[:, :-padding_size, :]
-            z = z[:-padding_size, :-padding_size, :]
+            m = m[:, :m.shape[1] - padding_size, :]
+            z = z[:z.shape[0] - padding_size, :z.shape[1] - padding_size, :]
 
-        htcore.mark_step()
+        htcore.mark_step(sync=True)
 
         return m, z
 

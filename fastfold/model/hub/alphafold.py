@@ -394,6 +394,10 @@ class AlphaFold(nn.Module):
         outputs["single"] = s
 
         if habana.is_habana():
+            import habana_frameworks.torch.core as htcore
+            htcore.mark_step()
+
+        if habana.is_habana():
             perf.checkahead("5: Predict 3D structure")
         outputs["sm"] = self.structure_module(
             s,

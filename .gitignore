@@ -134,3 +134,6 @@ dmypy.json
 # setup
 dist/
 build/
+
+# alphafold weights
+params/

@@ -6,10 +6,12 @@ import torch
 import os
 import habana_frameworks.torch.core
 
-custom_fusedsoftmax_op_lib_path = "./build/lib.linux-x86_64-3.8/hpu_fusedsoftmax.cpython-38-x86_64-linux-gnu.so"
+custom_fusedsoftmax_op_lib_path = "./build/lib.linux-x86_64-cpython-312/hpu_fusedsoftmax.cpython-312-x86_64-linux-gnu.so"
 my_dir = os.path.realpath(__file__)
 my_len = my_dir.rfind('/')
 base_dir = my_dir[:my_len]
+import ctypes, ctypes.util
+ctypes.CDLL("/usr/local/lib/python3.12/dist-packages/habana_frameworks/torch/lib/libhabana_pytorch_plugin.so", mode=ctypes.RTLD_GLOBAL)
 torch.ops.load_library(os.path.join(base_dir, custom_fusedsoftmax_op_lib_path))
 
 class FusedSoftmaxFunction(torch.autograd.Function):
@@ -63,7 +65,7 @@ class FusedSoftmaxBiasFunction(torch.autograd.Function):
         return grad_input, None, grad_bias, None
 
 
-ENABLE_OPT = True
+ENABLE_OPT = False
 
 def fused_softmax(input, mask, dim):
     if ENABLE_OPT and input[..., :, :1, :1, :].shape == mask.shape:
