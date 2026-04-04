@@ -23,7 +23,7 @@ import os
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from Bio import PDB
-from Bio.Data import SCOPData
+from Bio.Data import PDBData as SCOPData
 import numpy as np
 
 from fastfold.data.errors import MultipleChainsError

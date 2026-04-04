@@ -73,15 +73,32 @@ def copy_transition(model_fast, model_ori):
 def copy_triangle(model_fast, model_ori):
     copy_layernorm(model_fast.layernorm1, model_ori.layer_norm_in)
     copy_layernorm(model_fast.layernorm2, model_ori.layer_norm_out)
-    copy_linear(model_fast.output_gate, model_ori.linear_g)
-    copy_linear(model_fast.output_projection, model_ori.linear_z)
-    model_fast.output_bias.copy_(model_ori.linear_z.bias)
 
-    copy_linear(model_fast.left_projection, model_ori.linear_a_p)
-    copy_linear(model_fast.right_projection, model_ori.linear_b_p)
-
-    copy_linear(model_fast.left_gate, model_ori.linear_a_g)
-    copy_linear(model_fast.right_gate, model_ori.linear_b_g)
+    if hasattr(model_ori, 'linear_p'):
+        # Fused triangle multiplication (multimer v3)
+        # linear_p and linear_g contain [left, right] concatenated along dim 0
+        c_hidden = model_fast.left_projection.weight.shape[0]
+        model_fast.left_projection.weight.copy_(model_ori.linear_p.weight[:c_hidden])
+        model_fast.left_projection.bias.copy_(model_ori.linear_p.bias[:c_hidden])
+        model_fast.right_projection.weight.copy_(model_ori.linear_p.weight[c_hidden:])
+        model_fast.right_projection.bias.copy_(model_ori.linear_p.bias[c_hidden:])
+        model_fast.left_gate.weight.copy_(model_ori.linear_g.weight[:c_hidden])
+        model_fast.left_gate.bias.copy_(model_ori.linear_g.bias[:c_hidden])
+        model_fast.right_gate.weight.copy_(model_ori.linear_g.weight[c_hidden:])
+        model_fast.right_gate.bias.copy_(model_ori.linear_g.bias[c_hidden:])
+        model_fast.output_gate.weight.copy_(model_ori.linear_gate.weight)
+        model_fast.output_gate.bias.copy_(model_ori.linear_gate.bias)
+        model_fast.output_projection.weight.copy_(model_ori.linear_z.weight)
+        model_fast.output_bias.copy_(model_ori.linear_z.bias)
+    else:
+        # Non-fused triangle multiplication (monomer)
+        copy_linear(model_fast.output_gate, model_ori.linear_g)
+        copy_linear(model_fast.output_projection, model_ori.linear_z)
+        model_fast.output_bias.copy_(model_ori.linear_z.bias)
+        copy_linear(model_fast.left_projection, model_ori.linear_a_p)
+        copy_linear(model_fast.right_projection, model_ori.linear_b_p)
+        copy_linear(model_fast.left_gate, model_ori.linear_a_g)
+        copy_linear(model_fast.right_gate, model_ori.linear_b_g)
 
 
 def copy_triangle_att(model_fast, model_ori):

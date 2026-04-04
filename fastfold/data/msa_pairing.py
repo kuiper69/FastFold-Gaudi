@@ -101,7 +101,7 @@ def pad_features(feature: np.ndarray, feature_name: str) -> np.ndarray:
   Returns:
     The feature with an additional padding row.
   """
-  assert feature.dtype != np.dtype(np.string_)
+  assert feature.dtype != np.dtype(np.bytes_)
   if feature_name in ('msa_all_seq', 'msa_mask_all_seq',
                       'deletion_matrix_all_seq', 'deletion_matrix_int_all_seq'):
     num_res = feature.shape[1]
@@ -373,16 +373,16 @@ def _merge_features_from_multiple_chains(
     feature_name_split = feature_name.split('_all_seq')[0]
     if feature_name_split in MSA_FEATURES:
       if pair_msa_sequences or '_all_seq' in feature_name:
-        merged_example[feature_name] = np.concatenate(feats, axis=1)
+        merged_example[feature_name] = np.concatenate(feats, axis=1) if feats[0].ndim > 1 else np.concatenate(feats, axis=0)
       else:
         merged_example[feature_name] = block_diag(
             *feats, pad_value=MSA_PAD_VALUES[feature_name])
     elif feature_name_split in SEQ_FEATURES:
       merged_example[feature_name] = np.concatenate(feats, axis=0)
     elif feature_name_split in TEMPLATE_FEATURES:
-      merged_example[feature_name] = np.concatenate(feats, axis=1)
+      merged_example[feature_name] = np.concatenate(feats, axis=1) if feats[0].ndim > 1 else np.concatenate(feats, axis=0)
     elif feature_name_split in CHAIN_FEATURES:
-      merged_example[feature_name] = np.sum(x for x in feats).astype(np.int32)
+      merged_example[feature_name] = sum(x for x in feats).astype(np.int32)
     else:
       merged_example[feature_name] = feats[0]
   return merged_example

@@ -150,7 +150,7 @@ def _crop_single_chain(chain: Mapping[str, np.ndarray],
   for k in chain:
     k_split = k.split('_all_seq')[0]
     if k_split in msa_pairing.TEMPLATE_FEATURES:
-      chain[k] = chain[k][:templates_crop_size, :]
+      chain[k] = chain[k][:templates_crop_size] if chain[k].ndim == 1 else chain[k][:templates_crop_size, :]
     elif k_split in msa_pairing.MSA_FEATURES:
       if '_all_seq' in k and pair_msa_sequences:
         chain[k] = chain[k][:msa_crop_size_all_seq, :]

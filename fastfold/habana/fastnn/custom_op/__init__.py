@@ -1,8 +1,12 @@
-###############################################################################
-# Copyright (C) 2020-2021 Habana Labs, Ltd. an Intel Company
-###############################################################################
+import torch
+import torch.nn.functional as F
 
-from .fusedsoftmax import fused_softmax, fused_softmax_bias
 
-__all__ = [fused_softmax, fused_softmax_bias]
+def fused_softmax(logits, mask, dim):
+    """Drop-in replacement for the R1.7.1 custom TPC fused_softmax kernel."""
+    return F.softmax(logits + mask, dim=dim)
 
+
+def fused_softmax_bias(logits, mask, bias, dim):
+    """Drop-in replacement for the R1.7.1 custom TPC fused_softmax_bias kernel."""
+    return F.softmax(logits + mask + bias, dim=dim)

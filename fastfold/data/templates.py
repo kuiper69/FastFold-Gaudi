@@ -85,8 +85,8 @@ TEMPLATE_FEATURES = {
     "template_aatype": np.int64,
     "template_all_atom_mask": np.float32,
     "template_all_atom_positions": np.float32,
-    "template_domain_names": np.object,
-    "template_sequence": np.object,
+    "template_domain_names": np.object_,
+    "template_sequence": np.object_,
     "template_sum_probs": np.float32,
 }
 
@@ -959,7 +959,8 @@ class TemplateHitFeaturizer:
         self._mmcif_dir = mmcif_dir
         if not glob.glob(os.path.join(self._mmcif_dir, "*.cif")):
             logging.error("Could not find CIFs in %s", self._mmcif_dir)
-            raise ValueError(f"Could not find CIFs in {self._mmcif_dir}")
+            logging.warning("No CIF files found — template search will return no hits.")
+            # raise ValueError(f"Could not find CIFs in {self._mmcif_dir}")
 
         try:
             self._max_template_date = datetime.datetime.strptime(
@@ -1209,8 +1210,8 @@ class HmmsearchHitFeaturizer(TemplateHitFeaturizer):
                 "template_all_atom_positions": np.zeros(
                     (1, num_res, residue_constants.atom_type_num, 3), np.float32
                 ),
-                "template_domain_names": np.array([''.encode()], dtype=np.object),
-                "template_sequence": np.array([''.encode()], dtype=np.object),
+                "template_domain_names": np.array([''.encode()], dtype=np.object_),
+                "template_sequence": np.array([''.encode()], dtype=np.object_),
                 "template_sum_probs": np.array([0], dtype=np.float32),
             }
 
